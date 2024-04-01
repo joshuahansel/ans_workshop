@@ -25,7 +25,7 @@ ny = 20
 T_ic_min = 500
 T_ic_max = 700
 
-htc = 100
+htc_value = 100
 T_inf_left = 300
 T_inf_coef = 50
 
@@ -94,8 +94,10 @@ source_power_density = ${fparse source_power / volume}
 
 [Functions]
   [T_inf_fn]
-    type = ParsedFunction
-    expression = '${T_inf_left} + ${T_inf_coef}*x'
+    type = PiecewiseLinear
+    axis = x
+    x = '0 ${length_x}'
+    y = '${T_inf_left} ${fparse T_inf_left + T_inf_coef * length_x}'
   []
 []
 
@@ -113,21 +115,26 @@ source_power_density = ${fparse source_power / volume}
   []
 []
 
-[FunctorMaterials]
-  [q_conv_mat]
-    type = ADParsedFunctorMaterial
-    property_name = q_conv
-    functor_names = 'T_inf T'
-    expression = '${htc} * (T_inf - T)'
-  []
-[]
+# [FunctorMaterials]
+#   [q_conv_mat]
+#     type = ADParsedFunctorMaterial
+#     property_name = q_conv
+#     functor_names = 'T_inf T'
+#     expression = '${htc} * (T_inf - T)'
+#   []
+# []
 
 [BCs]
   [top_bc]
-    type = FunctorNeumannBC
+    # type = FunctorNeumannBC
+    # variable = T
+    # boundary = top
+    # functor = q_conv
+    type = CoupledConvectiveHeatFluxBC
     variable = T
     boundary = top
-    functor = q_conv
+    htc = ${htc_value}
+    T_infinity = T_inf
   []
 []
 
@@ -144,12 +151,18 @@ source_power_density = ${fparse source_power / volume}
     value_type = max
     execute_on = 'INITIAL TIMESTEP_END'
   []
-  [heat_loss]
-    type = ADSideIntegralFunctorPostprocessor
+  [heat_loss_per_depth]
+    # type = ADSideIntegralFunctorPostprocessor
+    # boundary = top
+    # functor = q_conv
+    # functor_argument = qp
+    # prefactor = ${depth} # Recall that in 2D, the "side" is 1D; still need to integrate over depth
+    # execute_on = 'INITIAL TIMESTEP_END'
+    type = ConvectiveHeatTransferSideIntegral
     boundary = top
-    functor = q_conv
-    functor_argument = qp
-    prefactor = ${depth} # Recall that in 2D, the "side" is 1D; still need to integrate over depth
+    T_solid = T
+    T_fluid = T_inf
+    htc_var = ${htc_value}
     execute_on = 'INITIAL TIMESTEP_END'
   []
 []
