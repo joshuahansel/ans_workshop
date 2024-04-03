@@ -181,9 +181,9 @@ source_power_density = ${fparse source_power / volume}
   type = Transient
   scheme = implicit-euler
   end_time = 1e8 # some time longer than it takes to achieve steady-state
-  dt = 1000
+  dt = 100
   steady_state_detection = true
-  steady_state_tolerance = 1e-5
+  steady_state_tolerance = 1e-6
 
   solve_type = NEWTON
 
