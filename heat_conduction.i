@@ -102,6 +102,15 @@ source_power_density = ${fparse source_power / volume}
   []
 []
 
+[FunctorMaterials]
+  [q_conv_mat]
+    type = ADParsedFunctorMaterial
+    property_name = q_conv
+    functor_names = 'T_inf T htc'
+    expression = 'htc * (T_inf - T)'
+  []
+[]
+
 [Kernels]
   [time_derivative]
     type = ADHeatConductionTimeDerivative
@@ -130,11 +139,10 @@ source_power_density = ${fparse source_power / volume}
 
 [BCs]
   [top_bc]
-    type = CoupledConvectiveHeatFluxBC
+    type = FunctorNeumannBC
     variable = T
     boundary = top
-    htc = htc
-    T_infinity = T_inf
+    functor = q_conv
   []
 []
 
@@ -151,18 +159,12 @@ source_power_density = ${fparse source_power / volume}
     value_type = max
     execute_on = 'INITIAL TIMESTEP_END'
   []
-  [heat_loss_per_depth]
-    type = ConvectiveHeatTransferSideIntegral
-    boundary = top
-    T_solid = T
-    T_fluid_var = T_inf
-    htc_var = htc
-    execute_on = 'INITIAL TIMESTEP_END'
-  []
   [heat_loss]
-    type = ScalePostprocessor
-    value = heat_loss_per_depth
-    scaling_factor = ${depth}
+    type = ADSideIntegralFunctorPostprocessor
+    boundary = top
+    functor = q_conv
+    functor_argument = qp
+    prefactor = -${depth} # Recall that in 2D, the "side" is 1D; still need to integrate over depth
     execute_on = 'INITIAL TIMESTEP_END'
   []
 []
@@ -196,7 +198,7 @@ source_power_density = ${fparse source_power / volume}
 []
 
 [Outputs]
-  file_base = 'out1'
+  file_base = 'out2'
   exodus = true
 
   [csv]
